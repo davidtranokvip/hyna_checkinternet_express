@@ -43,10 +43,11 @@ function checkWebsite(proxyConfig, targetUrl) {
         host: targetUrlObj.hostname,
         port: targetUrlObj.port || 443,
         secureProtocol: 'TLSv1_2_method',
-        path: targetUrlObj.pathname + targetUrlObj.search,
+        secure: true,
+        path: targetUrlObj.pathname + targetUrlObj.search,  
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; SM-G532MT) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Mobile Safari/537.36',
           'Accept': '*/*',
           'Connection': 'close'
         },
@@ -59,8 +60,25 @@ function checkWebsite(proxyConfig, targetUrl) {
 
       let timedOut = false;
 
+      const socketTimeout = setTimeout(() => {
+        req.destroy();
+        resolve({
+          name: proxyConfig.name,
+          proxy: `${proxyConfig.host}:${proxyConfig.port}`,
+          error: 'Socket Timeout',
+          result: 'BLOCKED',
+          details: 'Socket connection timeout'
+        });
+      }, 15000);
+      
       const req = https.get(options, (res) => {
         let data = '';
+
+        req.on('socket', (socket) => {
+          socket.on('connect', () => {
+            clearTimeout(socketTimeout);
+          });
+        });
         res.on('data', chunk => {
           data += chunk;
         });
